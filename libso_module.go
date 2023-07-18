@@ -103,3 +103,31 @@ func RegisterLibso(libname string, options []ModuleMgrOption, args []interface{}
 	}
 	return mSkeleton.Register(m, options, args...)
 }
+
+func RegisterLibsoWithModule(libname, modulename string, options []ModuleMgrOption, args []interface{}) error {
+	if !strings.HasSuffix(libname, ".so") {
+		log.Printf("[E]libname(%s) must be a so lib\n", libname)
+		return fmt.Errorf("libname(%s) must be a so lib", libname)
+	}
+	log.Printf("[D]ModuleName: %s\n", modulename)
+	// return mSkeleton.Register(m, options, args...)
+	plug, err := plugin.Open(libname)
+	if err != nil {
+		log.Printf("[E]load Module(%s) failed:%v\n", libname, err)
+		return fmt.Errorf("load Module(%s) failed:%v", libname, err)
+	}
+	var symbol plugin.Symbol
+	symbol, err = plug.Lookup(modulename)
+	if err != nil {
+		log.Printf("[E]Module(%s) Lookup %s failed:%v\n", libname, modulename, err)
+		return fmt.Errorf("Module(%s) Lookup %s failed:%v", libname, modulename, err)
+	}
+	fmt.Printf("-------symbol=%#v\n", symbol)
+	m, ok := symbol.(IModule)
+	if !ok {
+		log.Printf("[E]Module(%s) must implement of IModule\n", modulename)
+		return fmt.Errorf("Module(%s) must implement of IModule", modulename)
+	}
+
+	return mSkeleton.Register(m, options, args...)
+}
