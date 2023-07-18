@@ -1,0 +1,9 @@
+#!/bin/sh
+
+cur=`pwd`
+
+
+go build -buildmode=plugin -o libso.so libso/main.go 
+go build -o loader libso_load/main.go 
+
+cd ${cur}
