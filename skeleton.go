@@ -18,7 +18,9 @@ func Register(m IModule, options []ModuleMgrOption, args []interface{}) error {
 }
 
 func Run(m IModule) error {
-	mSkeleton.Register(m, nil, nil)
+	if m != nil {
+		mSkeleton.Register(m, nil, nil)
+	}
 	err := mSkeleton.Init()
 	if err != nil {
 		log.Printf("[E]skeleton init failed:%v\n", err)
