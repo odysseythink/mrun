@@ -17,6 +17,14 @@ func Register(m IModule, options []ModuleMgrOption, args []interface{}) error {
 	return mSkeleton.Register(m, options, args...)
 }
 
+func RegisterLibso(libname string, options []ModuleMgrOption, args []interface{}) error {
+	return mSkeleton.RegisterLibso(libname, options, args...)
+}
+
+func RegisterLibsoWithModule(libname, modulename string, options []ModuleMgrOption, args []interface{}) error {
+	return mSkeleton.RegisterLibsoWithModule(libname, modulename, options, args...)
+}
+
 func Run(m IModule) error {
 	if m != nil {
 		mSkeleton.Register(m, nil, nil)
