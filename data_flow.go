@@ -12,6 +12,26 @@ import (
 
 type DataFlowOption func(*DataFlow, *dataProcessorInfo)
 
+func NewDataFlowProcessorErrorOption(cb func(IDataProcessor, error)) func(df *DataFlow, info *dataProcessorInfo) {
+	return func(df *DataFlow, info *dataProcessorInfo) {
+		if cb == nil {
+			log.Printf("[E]invalid arg\n")
+			return
+		}
+		info.onProcessorError = cb
+	}
+}
+
+func NewDataFlowProcessFaildOption(cb func(msg interface{}, err error) (interface{}, error)) func(df *DataFlow, info *dataProcessorInfo) {
+	return func(df *DataFlow, info *dataProcessorInfo) {
+		if cb == nil {
+			log.Printf("[E]invalid arg\n")
+			return
+		}
+		info.processFaildFunc = cb
+	}
+}
+
 type IDataProcessor interface {
 	Init(args ...interface{}) error
 	RunOnce(ctx context.Context) error
