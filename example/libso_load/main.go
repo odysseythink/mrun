@@ -14,7 +14,7 @@ func main() {
 	}
 	err = mrun.RegisterLibsoWithModule("TestModule.so", "TestModule", nil, nil)
 	if err != nil {
-		log.Printf("mrun.RegisterLibso(\"TestModule\", nil, nil) failed:%v\n", err)
+		log.Printf("mrun.RegisterLibso(\"mTestModule\", nil, nil) failed:%v\n", err)
 		return
 	}
 	mrun.Run(nil)

@@ -1,78 +1,46 @@
 package mrun
 
 import (
+	"container/list"
 	"context"
 	"fmt"
 	"log"
 	"plugin"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 )
 
-type ModuleMgrOption func(*ModuleMgr, IModule)
+type ModuleMgrOption func(*ModuleMgr, *moduleInfo)
 
-func NewPriorityModuleMgrOption(priority int) func(mgr *ModuleMgr, m IModule) {
-	return func(mgr *ModuleMgr, m IModule) {
+func NewPriorityModuleMgrOption(priority int) func(mgr *ModuleMgr, info *moduleInfo) {
+	return func(mgr *ModuleMgr, info *moduleInfo) {
 		if priority < 0 {
 			log.Printf("[E]invalid arg\n")
 			return
 		}
-		if val, ok := mgr.modules.Load(m); !ok {
-			log.Printf("[E]module not saved")
-			return
-		} else {
-			info := val.(*moduleInfo)
-			mgr.preInitModsMux.Lock()
-			if mgr.preInitMods == nil {
-				mgr.preInitMods = make(map[int]map[*moduleInfo]struct{})
-			}
-			if mgr.preInitMods[priority] == nil {
-				mgr.preInitMods[priority] = make(map[*moduleInfo]struct{})
-			}
-			if _, ok := mgr.preInitMods[priority][info]; ok {
-				mgr.preInitModsMux.Unlock()
-				log.Printf("[E]already exist\n")
-				return
-			}
-
-			mgr.preInitMods[priority][info] = struct{}{}
-			mgr.preInitModsMux.Unlock()
-		}
+		info.order = uint(priority)
 	}
 }
 
-func NewModuleErrorOption(cb func(IModule, error)) func(mgr *ModuleMgr, m IModule) {
-	return func(mgr *ModuleMgr, m IModule) {
+func NewModuleErrorOption(cb func(IModule, error)) func(mgr *ModuleMgr, info *moduleInfo) {
+	return func(mgr *ModuleMgr, info *moduleInfo) {
 		if cb == nil {
 			log.Printf("[E]invalid arg\n")
 			return
 		}
-		if val, ok := mgr.modules.Load(m); !ok {
-			log.Printf("[E]module not saved")
-			return
-		} else {
-			info := val.(*moduleInfo)
-			info.onModuleError = cb
-		}
+		info.onModuleError = cb
 	}
 }
 
-func NewModuleAliasOption(name string) func(mgr *ModuleMgr, m IModule) {
-	return func(mgr *ModuleMgr, m IModule) {
+func NewModuleAliasOption(name string) func(mgr *ModuleMgr, info *moduleInfo) {
+	return func(mgr *ModuleMgr, info *moduleInfo) {
 		if name == "" {
 			log.Printf("[E]invalid arg\n")
 			return
 		}
-		if val, ok := mgr.modules.Load(m); !ok {
-			log.Printf("[E]module not saved")
-			return
-		} else {
-			info := val.(*moduleInfo)
-			info.alias = name
-		}
+		info.alias = name
 	}
 }
 
@@ -90,18 +58,103 @@ type moduleInfo struct {
 	exitCh        chan struct{}
 	onModuleError func(IModule, error)
 	alias         string
+	order         uint
 }
 
 type ModuleMgr struct {
-	name    string
-	modules sync.Map
+	name          string
+	modulesMux    sync.RWMutex
+	modules       *list.List
+	ctx           context.Context
+	wg            sync.WaitGroup
+	ctxCancelFunc context.CancelFunc
+	initOnce      sync.Once
+}
 
-	preInitModsMux sync.Mutex
-	preInitMods    map[int]map[*moduleInfo]struct{}
-	ctx            context.Context
-	wg             sync.WaitGroup
-	ctxCancelFunc  context.CancelFunc
-	initOnce       sync.Once
+func (mgr *ModuleMgr) Contains(m IModule) bool {
+	if m == nil {
+		log.Printf("[E]invalid arg\n")
+		return false
+	}
+
+	mgr.modulesMux.RLock()
+	if mgr.modules == nil {
+		mgr.modules = list.New()
+	}
+	e := mgr.modules.Front()
+	for e != nil {
+		if e.Value.(*moduleInfo).m == m {
+			mgr.modulesMux.RUnlock()
+			return true
+		}
+		e = e.Next()
+	}
+	mgr.modulesMux.RUnlock()
+	return false
+}
+
+func (mgr *ModuleMgr) GetModuleInfo(m IModule) *moduleInfo {
+	if m == nil {
+		log.Printf("[E]invalid arg\n")
+		return nil
+	}
+
+	mgr.modulesMux.RLock()
+	if mgr.modules == nil {
+		mgr.modules = list.New()
+	}
+	e := mgr.modules.Front()
+	for e != nil {
+		if e.Value.(*moduleInfo).m == m {
+			info := e.Value.(*moduleInfo)
+			mgr.modulesMux.RUnlock()
+			return info
+		}
+		e = e.Next()
+	}
+	mgr.modulesMux.RUnlock()
+	return nil
+}
+
+func (mgr *ModuleMgr) DeleteModuleInfo(m IModule) {
+	if m == nil {
+		log.Printf("[E]invalid arg\n")
+		return
+	}
+
+	mgr.modulesMux.Lock()
+	if mgr.modules == nil {
+		mgr.modules = list.New()
+	}
+	e := mgr.modules.Front()
+	for e != nil {
+		if e.Value.(*moduleInfo).m == m {
+			mgr.modules.Remove(e)
+			mgr.modulesMux.RUnlock()
+			return
+		}
+		e = e.Next()
+	}
+	mgr.modulesMux.Unlock()
+}
+
+func (mgr *ModuleMgr) addModule(info *moduleInfo) {
+	if info == nil {
+		log.Printf("[E]invalid arg\n")
+		return
+	}
+	mgr.modulesMux.Lock()
+	e := mgr.modules.Front()
+	for e != nil {
+		if e.Value.(*moduleInfo).order >= info.order {
+			mgr.modules.InsertAfter(info, e)
+			mgr.modulesMux.Unlock()
+			return
+		}
+		e = e.Next()
+	}
+	mgr.modules.PushBack(info)
+	mgr.modulesMux.Unlock()
 }
 
 func (mgr *ModuleMgr) Register(m IModule, options []ModuleMgrOption, args ...interface{}) error {
@@ -109,7 +162,8 @@ func (mgr *ModuleMgr) Register(m IModule, options []ModuleMgrOption, args ...int
 		log.Printf("[E]invalid arg\n")
 		return fmt.Errorf("invalid arg")
 	}
-	if _, ok := mgr.modules.Load(m); ok {
+
+	if mgr.Contains(m) {
 		log.Printf("[E]already register")
 		return fmt.Errorf("already register")
 	}
@@ -123,16 +177,17 @@ func (mgr *ModuleMgr) Register(m IModule, options []ModuleMgrOption, args ...int
 	info := &moduleInfo{
 		m:      m,
 		exitCh: make(chan struct{}),
+		order:  9999,
 	}
 	if args != nil {
 		info.args = make([]interface{}, 0)
 		info.args = append(info.args, args...)
 	}
 
-	mgr.modules.Store(m, info)
 	for _, v := range options {
-		v(mgr, m)
+		v(mgr, info)
 	}
+	mgr.addModule(info)
 	if mgr.ctx != nil {
 		mgr.runModule(info)
 	}
@@ -237,39 +292,25 @@ func (mgr *ModuleMgr) UnRegister(m IModule) error {
 		log.Printf("[E]invalid arg\n")
 		return fmt.Errorf("invalid arg")
 	}
-	if _, ok := mgr.modules.Load(m); !ok {
+	info := mgr.GetModuleInfo(m)
+	if info == nil {
 		log.Printf("[E]module not register")
 		return fmt.Errorf("module not register")
 	}
 	// mgr.wg.Add(1)
 	// go func() {
-	val, _ := mgr.modules.Load(m)
+
 	if mgr.ctx != nil {
 		select {
-		case val.(*moduleInfo).exitCh <- struct{}{}:
+		case info.exitCh <- struct{}{}:
 			break
 		default:
 			// log.Println("notice exitCh failed")
 			break
 		}
 	}
-	val.(*moduleInfo).m.Destroy()
-	mgr.modules.Delete(m)
-	mgr.preInitModsMux.Lock()
-	for k, v := range mgr.preInitMods {
-		found := false
-		for info := range v {
-			if info.m == m {
-				delete(mgr.preInitMods[k], info)
-				found = true
-				break
-			}
-		}
-		if found {
-			break
-		}
-	}
-	mgr.preInitModsMux.Unlock()
+	info.m.Destroy()
+	mgr.DeleteModuleInfo(m)
 	// 	mgr.wg.Done()
 	// }()
 	return nil
@@ -278,88 +319,76 @@ func (mgr *ModuleMgr) UnRegister(m IModule) error {
 func (mgr *ModuleMgr) Init() error {
 	var err error
 	mgr.initOnce.Do(func() {
-		modInitFlagMap := make(map[*moduleInfo]bool)
-		priorities := make([]int, 0)
-		mgr.preInitModsMux.Lock()
-		for k := range mgr.preInitMods {
-			priorities = append(priorities, k)
+		mgr.modulesMux.RLock()
+		if mgr.modules == nil {
+			mgr.modules = list.New()
 		}
-		sort.Ints(priorities)
-		for _, v := range priorities {
-			for info := range mgr.preInitMods[v] {
-				if isInit, ok := modInitFlagMap[info]; !ok || !isInit {
-					err = info.m.Init(info.args...)
-					if err != nil {
-						return
-					}
-					modInitFlagMap[info] = true
-				}
+		e := mgr.modules.Front()
+		for e != nil {
+			err = e.Value.(*moduleInfo).m.Init(e.Value.(*moduleInfo).args...)
+			if err != nil {
+				mgr.modulesMux.RUnlock()
+				return
 			}
+			e = e.Next()
 		}
-		mgr.preInitMods = nil
-		mgr.preInitModsMux.Unlock()
+		mgr.modulesMux.RUnlock()
 
-		mgr.modules.Range(func(key, value interface{}) bool {
-			if _, ok := key.(IModule); !ok {
-				log.Printf("[E]modules key not save IModule")
-				err = fmt.Errorf("modules key not save IModule")
-				return false
-			} else {
-				if info, ok := value.(*moduleInfo); !ok {
-					log.Printf("[E]modules value not save moduleInfo pointer")
-					err = fmt.Errorf("modules value not save moduleInfo pointer")
-					return false
-				} else {
-					if isInit, ok := modInitFlagMap[info]; !ok || !isInit {
-						err = info.m.Init(info.args...)
-						if err != nil {
-							return false
-						}
-						modInitFlagMap[info] = true
-					}
-				}
-			}
-			return true
-		})
-		if err != nil {
-			return
-		}
 		mgr.ctx, mgr.ctxCancelFunc = context.WithCancel(context.Background())
-
-		mgr.modules.Range(func(key, value interface{}) bool {
-			mgr.runModule(value.(*moduleInfo))
-			return true
-		})
+		mgr.modulesMux.RLock()
+		e = mgr.modules.Front()
+		for e != nil {
+			mgr.runModule(e.Value.(*moduleInfo))
+			e = e.Next()
+		}
+		mgr.modulesMux.RUnlock()
 	})
 
 	return err
 }
 
 func (mgr *ModuleMgr) ModuleNum() int {
-	num := 0
-	mgr.modules.Range(func(key, value interface{}) bool {
-		num++
-		return true
-	})
+	mgr.modulesMux.RLock()
+	num := mgr.modules.Len()
+	mgr.modulesMux.RUnlock()
 	return num
 }
 
 func (mgr *ModuleMgr) Destroy() {
 	if mgr.ctxCancelFunc != nil {
 		mgr.ctxCancelFunc()
-		mgr.modules.Range(func(key, value interface{}) bool {
-			mgr.destroy(value.(*moduleInfo))
-			mgr.modules.Delete(key)
-			return true
-		})
+
+		mgr.modulesMux.Lock()
+		if mgr.modules == nil {
+			mgr.modules = list.New()
+		}
+		e := mgr.modules.Front()
+		for e != nil {
+			mgr.destroy(e.Value.(*moduleInfo))
+			tmp := e.Next()
+			mgr.modules.Remove(e)
+			e = tmp
+
+		}
+		mgr.modulesMux.Unlock()
 	}
 	mgr.wg.Wait()
 }
 
 func (mgr *ModuleMgr) Range(cb func(m IModule) bool) {
-	mgr.modules.Range(func(key, value interface{}) bool {
-		return cb(value.(*moduleInfo).m)
-	})
+	mgr.modulesMux.RLock()
+	if mgr.modules == nil {
+		mgr.modules = list.New()
+	}
+	e := mgr.modules.Front()
+	for e != nil {
+		if !cb(e.Value.(*moduleInfo).m) {
+			mgr.modulesMux.RUnlock()
+			return
+		}
+		e = e.Next()
+	}
+	mgr.modulesMux.RUnlock()
 }
 
 func (mgr *ModuleMgr) GetModulesByAlias(name string) []IModule {
@@ -370,17 +399,21 @@ func (mgr *ModuleMgr) GetModulesByAlias(name string) []IModule {
 		}
 	}
 	var ret []IModule
-	mgr.modules.Range(func(key, value interface{}) bool {
-		if info, ok := value.(*moduleInfo); ok && info != nil {
-			if info.alias == name {
-				if ret == nil {
-					ret = make([]IModule, 0)
-				}
-				ret = append(ret, info.m)
+	mgr.modulesMux.RLock()
+	if mgr.modules == nil {
+		mgr.modules = list.New()
+	}
+	e := mgr.modules.Front()
+	for e != nil {
+		if e.Value.(*moduleInfo).alias == name {
+			if ret == nil {
+				ret = make([]IModule, 0)
 			}
+			ret = append(ret, e.Value.(*moduleInfo).m)
 		}
-		return true
-	})
+		e = e.Next()
+	}
+	mgr.modulesMux.RUnlock()
 	return ret
 }
 
