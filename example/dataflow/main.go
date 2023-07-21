@@ -70,36 +70,61 @@ func (p Processor2) Process(msg interface{}) (interface{}, error) {
 }
 
 func main() {
-	var df mrun.DataFlow
-	err := df.Register(0, &Processor1{}, nil, nil)
+	pdf := mrun.NewDataFlow("parallel")
+	sdf := mrun.NewDataFlow("sequence")
+	err := sdf.Register(&Processor1{}, []mrun.DataFlowOption{mrun.NewDataFlowOrderOption(0)}, nil)
 	if err != nil {
-		fmt.Println("DataFlow Register Processor1 failed:", err)
+		fmt.Println("sequence DataFlow Register Processor1 failed:", err)
 		return
 	}
-	err = df.Register(1, &Processor2{}, nil, nil)
+	err = pdf.Register(&Processor1{}, nil, nil)
 	if err != nil {
-		fmt.Println("DataFlow Register Processor2 failed:", err)
+		fmt.Println("parallel DataFlow Register Processor1 failed:", err)
 		return
 	}
-	err = df.Init()
+	err = sdf.Register(&Processor2{}, []mrun.DataFlowOption{mrun.NewDataFlowOrderOption(1)}, nil)
 	if err != nil {
-		fmt.Println("DataFlow init failed:", err)
+		fmt.Println("sequence DataFlow Register Processor2 failed:", err)
+		return
+	}
+	err = pdf.Register(&Processor2{}, nil, nil)
+	if err != nil {
+		fmt.Println("parallel DataFlow Register Processor1 failed:", err)
+		return
+	}
+	err = sdf.Init()
+	if err != nil {
+		fmt.Println("sequence DataFlow init failed:", err)
+		return
+	}
+	err = pdf.Init()
+	if err != nil {
+		fmt.Println("parallel DataFlow init failed:", err)
 		return
 	}
 	var wg sync.WaitGroup
-	for iLoop := 0; iLoop < 100; iLoop++ {
+	for iLoop := 0; iLoop < 10; iLoop++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			ret, err := df.Process(idx)
+			ret, err := sdf.Process(idx)
 			if err != nil {
-				fmt.Printf("DataFlow Process(%d) failed:%v\n", idx, err)
+				fmt.Printf("sequence DataFlow Process(%d) failed:%v\n", idx, err)
 				return
 			} else {
-				fmt.Printf("DataFlow Process(%d)=%v\n", idx, ret)
+				fmt.Printf("sequence DataFlow Process(%d)=%v\n", idx, ret)
 			}
 		}(iLoop)
+
+		ret, err := pdf.Process(iLoop)
+		if err != nil {
+			fmt.Printf("parallel DataFlow Process(%d) failed:%v\n", iLoop, err)
+			return
+		} else {
+			fmt.Printf("parallel DataFlow Process(%d)=%v\n", iLoop, ret)
+		}
 	}
 	wg.Wait()
-	df.Destroy()
+	sdf.Destroy()
+	pdf.Destroy()
 }
