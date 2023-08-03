@@ -121,7 +121,10 @@ func main() {
 			fmt.Printf("parallel DataFlow Process(%d) failed:%v\n", iLoop, err)
 			return
 		} else {
-			fmt.Printf("parallel DataFlow Process(%d)=%v\n", iLoop, ret)
+			fmt.Printf("parallel DataFlow Process(%d)=%#v\n", iLoop, ret)
+			if _, ok := ret.([]interface{}); !ok {
+				fmt.Printf("ret(%#v) convert to []int failed\n", ret)
+			}
 		}
 	}
 	wg.Wait()
