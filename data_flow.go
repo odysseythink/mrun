@@ -38,6 +38,7 @@ type IDataProcessor interface {
 	RunOnce(ctx context.Context) error
 	Destroy()
 	UserData() interface{}
+	MsgCheck(msg interface{}) error
 	Process(msg interface{}) (interface{}, error)
 }
 

@@ -56,6 +56,16 @@ func (df *ParallelDataFlow) Process(msg interface{}) (interface{}, error) {
 	var outmsgs []interface{}
 	e := df.processors.Front()
 	for e != nil {
+		err := e.Value.(*dataProcessorInfo).p.MsgCheck(msg)
+		if err != nil {
+			log.Printf("[E]MsgCheck failed:%v\n", err)
+			if e.Value.(*dataProcessorInfo).processFaildFunc != nil {
+				df.processorsMux.RUnlock()
+				return e.Value.(*dataProcessorInfo).processFaildFunc(msg, err)
+			} else {
+				return nil, err
+			}
+		}
 		outmsg, err := e.Value.(*dataProcessorInfo).p.Process(msg)
 		if err != nil {
 			log.Printf("[E]process failed:%v\n", err)

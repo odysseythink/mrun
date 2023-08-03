@@ -25,6 +25,15 @@ func (p Processor1) Destroy() {
 func (p Processor1) UserData() interface{} {
 	return nil
 }
+
+func (p Processor1) MsgCheck(msg interface{}) error {
+	if msg == nil {
+		fmt.Println("Processor1 Process failed:invalid arg")
+		return errors.New("Processor1 Process failed:invalid arg")
+	}
+	return nil
+}
+
 func (p Processor1) Process(msg interface{}) (interface{}, error) {
 	if msg == nil {
 		fmt.Println("Processor1 Process failed:invalid arg")
@@ -54,6 +63,14 @@ func (p Processor2) Destroy() {
 }
 func (p Processor2) UserData() interface{} {
 	return p
+}
+
+func (p Processor2) MsgCheck(msg interface{}) error {
+	if msg == nil {
+		fmt.Println("Processor2 Process failed:invalid arg")
+		return errors.New("Processor2 Process failed:invalid arg")
+	}
+	return nil
 }
 func (p Processor2) Process(msg interface{}) (interface{}, error) {
 	if msg == nil {
