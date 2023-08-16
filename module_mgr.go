@@ -44,6 +44,15 @@ func NewModuleAliasOption(name string) func(mgr *ModuleMgr, info *moduleInfo) {
 	}
 }
 
+func NewModuleRunPeriodOption(msec uint) func(mgr *ModuleMgr, info *moduleInfo) {
+	return func(mgr *ModuleMgr, info *moduleInfo) {
+		if msec == 0 {
+			msec = 1
+		}
+		info.period = msec
+	}
+}
+
 func NewModuleMgr(name string) *ModuleMgr {
 	if name == "" {
 		log.Printf("[E]invalid arg\n")
@@ -59,6 +68,7 @@ type moduleInfo struct {
 	onModuleError func(IModule, error)
 	alias         string
 	order         uint
+	period        uint
 }
 
 type ModuleMgr struct {
@@ -178,6 +188,7 @@ func (mgr *ModuleMgr) Register(m IModule, options []ModuleMgrOption, args ...int
 		m:      m,
 		exitCh: make(chan struct{}),
 		order:  9999,
+		period: 1,
 	}
 	if args != nil {
 		info.args = make([]interface{}, 0)
@@ -438,7 +449,7 @@ func (mgr *ModuleMgr) runModule(info *moduleInfo) {
 	mgr.wg.Add(1)
 	go func() {
 		var err error
-		timer := time.NewTimer(1 * time.Millisecond)
+		timer := time.NewTimer(time.Duration(info.period) * time.Millisecond)
 	LOOP:
 		for {
 			select {
