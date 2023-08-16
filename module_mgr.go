@@ -471,7 +471,7 @@ func (mgr *ModuleMgr) runModule(info *moduleInfo) {
 					}
 					break LOOP
 				}
-				timer.Reset(1 * time.Millisecond)
+				timer.Reset(time.Duration(info.period) * time.Millisecond)
 			}
 		}
 		mgr.wg.Done()
