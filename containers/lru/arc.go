@@ -1,4 +1,4 @@
-package mlru
+package lru
 
 import "sync"
 

@@ -1,4 +1,4 @@
-package mlru
+package lru
 
 // LRUCache is the interface for simple LRU cache.
 type ILRUCache[K comparable, V any] interface {
