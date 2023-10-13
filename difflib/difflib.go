@@ -1,18 +1,3 @@
-// Package difflib is a partial port of Python difflib module.
-//
-// It provides tools to compare sequences of strings and generate textual diffs.
-//
-// The following class and functions have been ported:
-//
-// - SequenceMatcher
-//
-// - unified_diff
-//
-// - context_diff
-//
-// Getting unified diffs was the main goal of the port. Keep in mind this code
-// is mostly suitable to output text differences in a human friendly way, there
-// are no guarantees generated diffs are consumable by patch(1).
 package difflib
 
 import (
@@ -199,12 +184,15 @@ func (m *SequenceMatcher) isBJunk(s string) bool {
 // If IsJunk is not defined:
 //
 // Return (i,j,k) such that a[i:i+k] is equal to b[j:j+k], where
-//     alo <= i <= i+k <= ahi
-//     blo <= j <= j+k <= bhi
+//
+//	alo <= i <= i+k <= ahi
+//	blo <= j <= j+k <= bhi
+//
 // and for all (i',j',k') meeting those conditions,
-//     k >= k'
-//     i <= i'
-//     and if i == i', j <= j'
+//
+//	k >= k'
+//	i <= i'
+//	and if i == i', j <= j'
 //
 // In other words, of all maximal matching blocks, return one that
 // starts earliest in a, and of all those maximal matching blocks that
