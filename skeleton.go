@@ -25,7 +25,7 @@ func RegisterLibsoWithModule(libname, modulename string, options []ModuleMgrOpti
 	return mSkeleton.RegisterLibsoWithModule(libname, modulename, options, args...)
 }
 
-func Run(m IModule) error {
+func Run(m IModule, sig ...os.Signal) error {
 	if m != nil {
 		mSkeleton.Register(m, nil, nil)
 	}
@@ -34,11 +34,16 @@ func Run(m IModule) error {
 		log.Printf("[E]skeleton init failed:%v\n", err)
 		return err
 	}
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	sig := <-quit
+	if len(sig) == 0 {
+		sig = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
+	}
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, sig...)
+
+	sigQuit := <-signalChan
+
 	mSkeleton.Destroy()
 	WorkerRelease()
-	log.Printf("[D]%s Server End!(closing by signal %v)\n", os.Args[0], sig)
+	log.Printf("[D]%s Server End!(closing by signal %v)\n", os.Args[0], sigQuit)
 	return nil
 }
