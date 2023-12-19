@@ -345,7 +345,9 @@ func (mgr *ModuleMgr) Init() error {
 		}
 		mgr.modulesMux.RUnlock()
 
-		mgr.ctx, mgr.ctxCancelFunc = context.WithCancel(context.Background())
+		if mgr.ctx == nil {
+			mgr.ctx, mgr.ctxCancelFunc = context.WithCancel(context.Background())
+		}
 		mgr.modulesMux.RLock()
 		e = mgr.modules.Front()
 		for e != nil {
