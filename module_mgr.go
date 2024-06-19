@@ -140,7 +140,7 @@ func (mgr *ModuleMgr) DeleteModuleInfo(m IModule) {
 	for e != nil {
 		if e.Value.(*moduleInfo).m == m {
 			mgr.modules.Remove(e)
-			mgr.modulesMux.RUnlock()
+			mgr.modulesMux.Unlock()
 			return
 		}
 		e = e.Next()

@@ -34,14 +34,15 @@ func RegisterLibsoWithModule(libname, modulename string, options []ModuleMgrOpti
 }
 
 func Run(m IModule, sig ...os.Signal) error {
-
+	var ctx context.Context
 	if m != nil {
 		mSkeleton.Register(m, nil, nil)
+		if s, ok := m.(Context); ok && s != nil {
+			ctx = s.Context()
+		}
 	}
-	var ctx context.Context
-	if s, ok := m.(Context); ok {
-		ctx = s.Context()
-	} else {
+
+	if ctx == nil {
 		ctx = context.Background()
 	}
 	mSkeleton.ctx, mSkeleton.ctxCancelFunc = context.WithCancel(ctx)
