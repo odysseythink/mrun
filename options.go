@@ -51,7 +51,7 @@ func OptionsResolve(options interface{}, flagSet *flag.FlagSet, cfg map[string]i
 				fieldPtr = reflect.Indirect(val).FieldByName(field.Name)
 			}
 			if !fieldPtr.IsNil() {
-				Resolve(fieldPtr.Interface(), flagSet, cfg)
+				OptionsResolve(fieldPtr.Interface(), flagSet, cfg)
 			}
 		}
 

@@ -353,8 +353,8 @@ var genericMap = map[string]interface{}{
 	"uuidv4": uuidv4,
 
 	// SemVer:
-	"semver":        semver,
-	"semverCompare": semverCompare,
+	//"semver":        semver,
+	//"semverCompare": semverCompare,
 
 	// Flow Control:
 	"fail": func(msg string) (string, error) { return "", errors.New(msg) },
