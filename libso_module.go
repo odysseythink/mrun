@@ -5,13 +5,13 @@ import (
 )
 
 type LibsoModule struct {
-	init     func(args ...interface{}) error
+	init     func(args ...any) error
 	destroy  func()
 	runOnce  func(ctx context.Context) error
-	userData func() interface{}
+	userData func() any
 }
 
-func (m *LibsoModule) Init(args ...interface{}) error {
+func (m *LibsoModule) Init(args ...any) error {
 	if m.init != nil {
 		return m.init()
 	}
@@ -28,7 +28,7 @@ func (m *LibsoModule) RunOnce(ctx context.Context) error {
 	}
 	return nil
 }
-func (m *LibsoModule) UserData() interface{} {
+func (m *LibsoModule) UserData() any {
 	if m.userData != nil {
 		return m.userData()
 	}

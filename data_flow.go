@@ -17,7 +17,7 @@ func NewDataFlowProcessorErrorOption(cb func(IDataProcessor, error)) func(info *
 	}
 }
 
-func NewDataFlowProcessFaildOption(cb func(msg interface{}, err error) (interface{}, error)) func(info *dataProcessorInfo) {
+func NewDataFlowProcessFaildOption(cb func(msg any, err error) (any, error)) func(info *dataProcessorInfo) {
 	return func(info *dataProcessorInfo) {
 		if cb == nil {
 			log.Printf("[E]invalid arg\n")
@@ -34,20 +34,20 @@ func NewDataFlowOrderOption(order uint) func(info *dataProcessorInfo) {
 }
 
 type IDataProcessor interface {
-	Init(args ...interface{}) error
+	Init(args ...any) error
 	RunOnce(ctx context.Context) error
 	Destroy()
-	UserData() interface{}
-	MsgCheck(msg interface{}) error
-	Process(msg interface{}) (interface{}, error)
+	UserData() any
+	MsgCheck(msg any) error
+	Process(msg any) (any, error)
 }
 
 type dataProcessorInfo struct {
 	p                IDataProcessor
-	args             []interface{}
+	args             []any
 	exitCh           chan struct{}
 	onProcessorError func(IDataProcessor, error)
-	processFaildFunc func(msg interface{}, err error) (interface{}, error)
+	processFaildFunc func(msg any, err error) (any, error)
 	order            uint
 }
 
@@ -55,13 +55,13 @@ type IDataFlow interface {
 	Contains(p IDataProcessor) bool
 	GetDataProcessorInfo(p IDataProcessor) *dataProcessorInfo
 	DeleteDataProcessorInfo(p IDataProcessor)
-	Register(p IDataProcessor, options []DataFlowOption, args ...interface{}) error
+	Register(p IDataProcessor, options []DataFlowOption, args ...any) error
 	UnRegister(p IDataProcessor) error
 	Init() error
 	ProcessorNum() int
 	Destroy()
 	Range(cb func(m IDataProcessor) bool)
-	Process(msg interface{}) (interface{}, error)
+	Process(msg any) (any, error)
 }
 
 func NewDataFlow(protocol string) IDataFlow {

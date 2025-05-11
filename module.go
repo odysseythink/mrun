@@ -9,8 +9,8 @@ const (
 )
 
 type IModule interface {
-	Init(args ...interface{}) error
+	Init(args ...any) error
 	Destroy()
 	RunOnce(ctx context.Context) error
-	UserData() interface{}
+	UserData() any
 }

@@ -21,15 +21,15 @@ type Context interface {
 	Context() context.Context
 }
 
-func Register(m IModule, options []ModuleMgrOption, args []interface{}) error {
+func Register(m IModule, options []ModuleMgrOption, args []any) error {
 	return mSkeleton.Register(m, options, args...)
 }
 
-func RegisterLibso(libname string, options []ModuleMgrOption, args []interface{}) error {
+func RegisterLibso(libname string, options []ModuleMgrOption, args []any) error {
 	return mSkeleton.RegisterLibso(libname, options, args...)
 }
 
-func RegisterLibsoWithModule(libname, modulename string, options []ModuleMgrOption, args []interface{}) error {
+func RegisterLibsoWithModule(libname, modulename string, options []ModuleMgrOption, args []any) error {
 	return mSkeleton.RegisterLibsoWithModule(libname, modulename, options, args...)
 }
 

@@ -10,7 +10,7 @@ type SequenceDataFlow struct {
 	BaseDataFlow
 }
 
-func (df *SequenceDataFlow) Register(p IDataProcessor, options []DataFlowOption, args ...interface{}) error {
+func (df *SequenceDataFlow) Register(p IDataProcessor, options []DataFlowOption, args ...any) error {
 	if p == nil {
 		log.Printf("[E]invalid arg\n")
 		return fmt.Errorf("invalid arg")
@@ -34,7 +34,7 @@ func (df *SequenceDataFlow) Register(p IDataProcessor, options []DataFlowOption,
 		order:  999,
 	}
 	if args != nil {
-		info.args = make([]interface{}, 0)
+		info.args = make([]any, 0)
 		info.args = append(info.args, args...)
 	}
 
@@ -69,14 +69,14 @@ func (df *SequenceDataFlow) getDataProcessorByOrder(order uint) IDataProcessor {
 	return nil
 }
 
-func (df *SequenceDataFlow) Process(msg interface{}) (interface{}, error) {
+func (df *SequenceDataFlow) Process(msg any) (any, error) {
 	df.processorsMux.RLock()
 	if df.processors == nil {
 		df.processors = list.New()
 	}
 	var err error
-	var inmsg interface{} = msg
-	var outmsg interface{}
+	var inmsg any = msg
+	var outmsg any
 	e := df.processors.Front()
 	for e != nil {
 		err = e.Value.(*dataProcessorInfo).p.MsgCheck(msg)

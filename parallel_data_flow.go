@@ -10,7 +10,7 @@ type ParallelDataFlow struct {
 	BaseDataFlow
 }
 
-func (df *ParallelDataFlow) Register(p IDataProcessor, options []DataFlowOption, args ...interface{}) error {
+func (df *ParallelDataFlow) Register(p IDataProcessor, options []DataFlowOption, args ...any) error {
 	if p == nil {
 		log.Printf("[E]invalid arg\n")
 		return fmt.Errorf("invalid arg")
@@ -27,7 +27,7 @@ func (df *ParallelDataFlow) Register(p IDataProcessor, options []DataFlowOption,
 		order:  999,
 	}
 	if args != nil {
-		info.args = make([]interface{}, 0)
+		info.args = make([]any, 0)
 		info.args = append(info.args, args...)
 	}
 
@@ -48,12 +48,12 @@ func (df *ParallelDataFlow) Register(p IDataProcessor, options []DataFlowOption,
 	return nil
 }
 
-func (df *ParallelDataFlow) Process(msg interface{}) (interface{}, error) {
+func (df *ParallelDataFlow) Process(msg any) (any, error) {
 	df.processorsMux.RLock()
 	if df.processors == nil {
 		df.processors = list.New()
 	}
-	var outmsgs []interface{}
+	var outmsgs []any
 	e := df.processors.Front()
 	for e != nil {
 		err := e.Value.(*dataProcessorInfo).p.MsgCheck(msg)
@@ -77,7 +77,7 @@ func (df *ParallelDataFlow) Process(msg interface{}) (interface{}, error) {
 			}
 		}
 		if outmsgs == nil {
-			outmsgs = make([]interface{}, 0)
+			outmsgs = make([]any, 0)
 		}
 		outmsgs = append(outmsgs, outmsg)
 		e = e.Next()
