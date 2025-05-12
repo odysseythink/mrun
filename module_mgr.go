@@ -459,7 +459,7 @@ func (mgr *ModuleMgr) runModule(info *moduleInfo) {
 				log.Printf("[D]exit current module\n")
 				break LOOP
 			case <-mgr.ctx.Done():
-				log.Printf("[D]context done\n")
+				log.Printf("[D]context done, module(%s) exit\n", info.alias)
 				break LOOP
 			case <-timer.C:
 				err = info.m.RunOnce(mgr.ctx)
