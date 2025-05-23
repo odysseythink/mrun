@@ -32,7 +32,7 @@ func (s *MainSystem) RunOnce(ctx context.Context) error {
 		if s.wg.Load() == 0 {
 			for iLoop := range 10000 {
 				s.wg.Add(1)
-				go s.msgSig.Send("message_was_created", strconv.Itoa(iLoop))
+				go s.msgSig.Emit("message_was_created", strconv.Itoa(iLoop))
 			}
 		}
 
@@ -131,7 +131,7 @@ func main() {
 	}
 	msys.wg.Store(0)
 
-	msgSig, err := mrun.NewSignal("message", mrun.NewSignalFuncOption("message_was_created", func(string) string { return "" }), mrun.NewSignalConcurrencyOption(100))
+	msgSig, err := mrun.NewSignal("message_was_created", func(string) string { return "" }, mrun.NewSignalConcurrencyOption(100))
 	if err != nil {
 		fmt.Println("new signal failed:", err)
 		return
@@ -142,7 +142,7 @@ func main() {
 		fmt.Println("connect signal failed:", err)
 		return
 	}
-	msys.msgSig.SendDirect("message_was_created", "hello")
-	msys.msgSig.Send("message_was_created", "111")
+	msys.msgSig.EmitDirect("message_was_created", "hello")
+	msys.msgSig.Emit("message_was_created", "111")
 	mrun.Run(msys, syscall.SIGINT, syscall.SIGTERM)
 }

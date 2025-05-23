@@ -12,7 +12,7 @@ func F1(val string) string {
 }
 
 func BenchmarkSignalSend(b *testing.B) {
-	msgSig, err := NewSignal("message", NewSignalFuncOption("message_was_created", func(string) string { return "" }), NewSignalConcurrencyOption(100))
+	msgSig, err := NewSignal("message_was_created", func(string) string { return "" }, NewSignalConcurrencyOption(100))
 	if err != nil {
 		fmt.Println("new signal failed:", err)
 		return
@@ -25,6 +25,6 @@ func BenchmarkSignalSend(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		msgSig.Send("message", strconv.Itoa(i))
+		msgSig.Emit("message", strconv.Itoa(i))
 	}
 }
