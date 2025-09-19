@@ -4,9 +4,6 @@ import (
 	"errors"
 )
 
-// EvictCallback is used to get a callback when a cache entry is evicted
-type EvictCallback[K comparable, V any] func(key K, value V)
-
 // SimpleLRU implements a non-thread safe fixed size LRU cache
 type SimpleLRU[K comparable, V any] struct {
 	size      int
