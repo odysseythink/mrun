@@ -63,7 +63,7 @@ func NewModuleMgr(name string) *ModuleMgr {
 
 type moduleInfo struct {
 	m             IModule
-	args          []interface{}
+	args          []any
 	exitCh        chan struct{}
 	onModuleError func(IModule, error)
 	alias         string
@@ -167,7 +167,7 @@ func (mgr *ModuleMgr) addModule(info *moduleInfo) {
 	mgr.modulesMux.Unlock()
 }
 
-func (mgr *ModuleMgr) Register(m IModule, options []ModuleMgrOption, args ...interface{}) error {
+func (mgr *ModuleMgr) Register(m IModule, options []ModuleMgrOption, args ...any) error {
 	if m == nil {
 		log.Printf("[E]invalid arg\n")
 		return fmt.Errorf("invalid arg")
@@ -191,7 +191,7 @@ func (mgr *ModuleMgr) Register(m IModule, options []ModuleMgrOption, args ...int
 		period: 1,
 	}
 	if args != nil {
-		info.args = make([]interface{}, 0)
+		info.args = make([]any, 0)
 		info.args = append(info.args, args...)
 	}
 
@@ -205,7 +205,7 @@ func (mgr *ModuleMgr) Register(m IModule, options []ModuleMgrOption, args ...int
 	return nil
 }
 
-func (mgr *ModuleMgr) RegisterLibso(libname string, options []ModuleMgrOption, args ...interface{}) error {
+func (mgr *ModuleMgr) RegisterLibso(libname string, options []ModuleMgrOption, args ...any) error {
 	if !strings.HasSuffix(libname, ".so") {
 		log.Printf("[E]libname(%s) must be a so lib\n", libname)
 		return fmt.Errorf("libname(%s) must be a so lib", libname)
@@ -225,7 +225,7 @@ func (mgr *ModuleMgr) RegisterLibso(libname string, options []ModuleMgrOption, a
 		log.Printf("[E]Module(%s) Lookup Init function failed:%v\n", libname, err)
 		return fmt.Errorf("Module(%s) Lookup Init function failed:%v", libname, err)
 	}
-	m.init, ok = symbol.(func(...interface{}) error)
+	m.init, ok = symbol.(func(...any) error)
 	if !ok {
 		log.Printf("[E]Module(%s) Init function has wrong type\n", libname)
 		return fmt.Errorf("Module(%s) Init function has wrong type", libname)
@@ -258,7 +258,7 @@ func (mgr *ModuleMgr) RegisterLibso(libname string, options []ModuleMgrOption, a
 		log.Printf("[E]Module(%s) Lookup UserData function failed:%v", libname, err)
 		return fmt.Errorf("Module(%s) Lookup UserData function failed:%v", libname, err)
 	}
-	m.userData, ok = symbol.(func() interface{})
+	m.userData, ok = symbol.(func() any)
 	if !ok {
 		log.Printf("[E]Module(%s) UserData function has wrong type", libname)
 		return fmt.Errorf("Module(%s) UserData function has wrong type", libname)
@@ -270,7 +270,7 @@ func (mgr *ModuleMgr) RegisterLibso(libname string, options []ModuleMgrOption, a
 	return mgr.Register(m, options, args...)
 }
 
-func (mgr *ModuleMgr) RegisterLibsoWithModule(libname, modulename string, options []ModuleMgrOption, args ...interface{}) error {
+func (mgr *ModuleMgr) RegisterLibsoWithModule(libname, modulename string, options []ModuleMgrOption, args ...any) error {
 	if !strings.HasSuffix(libname, ".so") {
 		log.Printf("[E]libname(%s) must be a so lib\n", libname)
 		return fmt.Errorf("libname(%s) must be a so lib", libname)
@@ -334,14 +334,15 @@ func (mgr *ModuleMgr) Init() error {
 		if mgr.modules == nil {
 			mgr.modules = list.New()
 		}
-		e := mgr.modules.Front()
-		for e != nil {
-			err = e.Value.(*moduleInfo).m.Init(e.Value.(*moduleInfo).args...)
+		m := mgr.modules.Front()
+		for m != nil {
+			err = m.Value.(*moduleInfo).m.Init(m.Value.(*moduleInfo).args...)
 			if err != nil {
+				log.Printf("[E]module init failed:%v\n", err)
 				mgr.modulesMux.RUnlock()
 				return
 			}
-			e = e.Next()
+			m = m.Next()
 		}
 		mgr.modulesMux.RUnlock()
 
@@ -349,10 +350,10 @@ func (mgr *ModuleMgr) Init() error {
 			mgr.ctx, mgr.ctxCancelFunc = context.WithCancel(context.Background())
 		}
 		mgr.modulesMux.RLock()
-		e = mgr.modules.Front()
-		for e != nil {
-			mgr.runModule(e.Value.(*moduleInfo))
-			e = e.Next()
+		m = mgr.modules.Front()
+		for m != nil {
+			mgr.runModule(m.Value.(*moduleInfo))
+			m = m.Next()
 		}
 		mgr.modulesMux.RUnlock()
 	})
