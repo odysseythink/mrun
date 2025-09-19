@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"mlib.com/mrun/fleets"
 )
 
 var (
@@ -66,7 +68,7 @@ func Run(m IModule, sig ...os.Signal) error {
 	}
 
 	mSkeleton.Destroy()
-	WorkerRelease()
+	fleets.Release()
 	log.Printf("[D]%s Server End!\n", os.Args[0])
 	return nil
 }

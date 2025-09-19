@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"mlib.com/mrun/fleets"
 )
 
 type ModuleMgrOption func(*ModuleMgr, *moduleInfo)
@@ -468,7 +470,7 @@ func (mgr *ModuleMgr) runModule(info *moduleInfo) {
 					log.Printf("[D]module RunOnce accur err(%v), exit module\n", err)
 					mgr.UnRegister(info.m)
 					if info.onModuleError != nil {
-						WorkerSubmit(func() {
+						fleets.Submit(func() {
 							info.onModuleError(info.m, err)
 						})
 					}

@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"mlib.com/mrun/fleets"
 )
 
 type BaseDataFlow struct {
@@ -246,7 +248,7 @@ func (df *BaseDataFlow) runDataProcessor(info *dataProcessorInfo) {
 					log.Printf("[D]data processor RunOnce accur err(%v), exit data processor\n", err)
 					df.UnRegister(info.p)
 					if info.onProcessorError != nil {
-						WorkerSubmit(func() {
+						fleets.Submit(func() {
 							info.onProcessorError(info.p, err)
 						})
 					}
