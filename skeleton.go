@@ -35,10 +35,10 @@ func RegisterLibsoWithModule(libname, modulename string, options []ModuleMgrOpti
 	return mSkeleton.RegisterLibsoWithModule(libname, modulename, options, args...)
 }
 
-func Run(m IModule, sig ...os.Signal) error {
+func RunWithArgs(m IModule, args []any, sig ...os.Signal) error {
 	var ctx context.Context
 	if m != nil {
-		mSkeleton.Register(m, nil, nil)
+		mSkeleton.Register(m, nil, args)
 		if s, ok := m.(Context); ok && s != nil {
 			ctx = s.Context()
 		}
@@ -71,4 +71,8 @@ func Run(m IModule, sig ...os.Signal) error {
 	fleets.Release()
 	log.Printf("[D]%s Server End!\n", os.Args[0])
 	return nil
+}
+
+func Run(m IModule, sig ...os.Signal) error {
+	return RunWithArgs(m, nil, sig...)
 }
