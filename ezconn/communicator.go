@@ -23,13 +23,14 @@ func NewCommunicator(protocol, addr string, maxConnNum, pendingWriteNum, threadn
 	}
 	protocol = strings.ToLower(protocol)
 	var communicator ICommunicator
-	if protocol == "tcpclient" {
+	switch protocol {
+	case "tcpclient":
 		communicator = &TCPClient{}
-	} else if protocol == "tcpserver" {
+	case "tcpserver":
 		communicator = &TCPServer{}
-	} else if protocol == "udp" {
+	case "udp":
 		communicator = &UDPCommunicator{}
-	} else {
+	default:
 		log.Printf("[E]unsurpported protocol(%s)\n", protocol)
 		return nil
 	}
