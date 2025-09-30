@@ -8,11 +8,11 @@ import (
 type ICommunicator interface {
 	This() ICommunicator
 	Protocol() string
-	Init(addr string, processor IProcessor, args ...interface{}) error
-	// ProtocolInit(addr string, args ...interface{}) error
+	Init(addr string, processor IProcessor, args ...any) error
+	// ProtocolInit(addr string, args ...any) error
 	Close()
-	SendToRemote(addr string, msg interface{}) error
-	// RegisterHandler(headerid interface{}, msg interface{}, handler func(conn IConn, req interface{})) error
+	SendToRemote(addr string, msg any) error
+	// RegisterHandler(headerid any, msg any, handler func(conn IConn, req any)) error
 }
 
 func NewCommunicator(protocol, addr string, maxConnNum, pendingWriteNum, threadnum int, processor IProcessor) ICommunicator {
