@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"mlib.com/mrun/fleets"
+	"github.com/odysseythink/mrun/fleets"
 )
 
 type ModuleMgrOption func(*ModuleMgr, *moduleInfo)
